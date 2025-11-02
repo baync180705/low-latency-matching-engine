@@ -16,6 +16,12 @@ type OrderBook struct {
     Mu sync.RWMutex
 }
 
+func NewRegistry() *Regsitry {
+    return &Regsitry{
+        Books: make(map[string]*OrderBook), 
+    }
+}
+
 func NewOrderBook(symbol string) *OrderBook {
     return &OrderBook{
         BuyHeap: NewHeap(true),

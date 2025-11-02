@@ -43,6 +43,11 @@ func (h *Heap) Remove(i int) any {
     return removed
 }
 
+func (h *Heap) PriceLevelExists(price int64) bool {
+    _, exists := h.TimeQueue[price]
+    return exists
+}
+
 func NewHeap(isBuy bool) *Heap {
     newHeap := &Heap{
         PriceHeap: []int64{},
