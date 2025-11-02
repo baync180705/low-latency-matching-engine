@@ -10,13 +10,13 @@ type Regsitry struct {
 }
 
 type OrderBook struct {
-	BuyPriorityQueue  *PriorityQueue
-    SellPriorityQueueSide *PriorityQueue 
+	BuyPriorityQueue  *Heap
+    SellPriorityQueueSide *Heap 
     OrderIDMap map[string]*Order 
     Mu sync.RWMutex
 }
 
-type PriorityQueue struct {
-	PriceHeap any
+type Heap struct {
+	PriceHeap *PriceHeap
 	TimeQueue map[int64]*OrderList
 }
