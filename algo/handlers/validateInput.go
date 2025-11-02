@@ -6,7 +6,7 @@ import (
 	types "github.com/baync180705/low-latency-matching-engine/types"
 )
 
-func ValidateInput(input types.OrderInput) error {
+func ValidateInput(input *types.OrderInput) error {
     if input.Quantity <= 0 {
         return errors.New("invalid order: quantity must be positive")
     }
