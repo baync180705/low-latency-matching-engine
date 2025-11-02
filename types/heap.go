@@ -1,42 +1,53 @@
 package dataType
 
-import "container/heap"
-
-type PriceLevel struct {
-	Price int64 
-	IsBuy bool 
+type Heap struct {
+	PriceHeap []int64 //Slice of Price
+	TimeQueue map[int64]*OrderList
+	isBuy bool
 }
 
-type PriceHeap []*PriceLevel
-
-func (ph PriceHeap) Len() int {
-	return len(ph)
+func (h Heap) Len() int {
+	return len(h.PriceHeap)
 }
 
-func (ph PriceHeap) Swap(i, j int) {
-	ph[i], ph[j] = ph[j], ph[i]
+func (h Heap) Swap(i, j int) {
+	h.PriceHeap[i], h.PriceHeap[j] = h.PriceHeap[j], h.PriceHeap[i]
 }
-func (ph PriceHeap) Less(i, j int) bool {
-	isBuy := ph[i].IsBuy
+func (h Heap) Less(i, j int) bool {
+	isBuy := h.isBuy
 	if isBuy {
-		return ph[i].Price > ph[j].Price 
+		return h.PriceHeap[i] > h.PriceHeap[j]
 	} else {
-		return ph[i].Price < ph[j].Price
+		return h.PriceHeap[i] < h.PriceHeap[j]
 	}
 }
 
-func (ph *PriceHeap) Push(x any) {
-	*ph = append(*ph, x.(*PriceLevel))
+func (h *Heap) Push(x any) {
+    h.PriceHeap = append(h.PriceHeap, x.(int64))
 }
 
-func (ph *PriceHeap) Pop() any {
-	old := *ph
-	n := len(old)
-	x := old[n-1]
-	*ph = old[0 : n-1]
-	return x
+func (h *Heap) Pop() any {
+    old := h.PriceHeap
+    n := len(old)
+    x := old[n-1]
+    h.PriceHeap = old[0 : n-1]
+    return x
 }
 
-func (ph *PriceHeap) Remove(i int) any {
-    return heap.Remove(ph, i)
+func (h *Heap) Remove(i int) any {
+    if i < 0 || i >= len(h.PriceHeap) {
+        return nil
+    }
+    removed := h.PriceHeap[i]
+    h.PriceHeap = append(h.PriceHeap[:i], h.PriceHeap[i+1:]...)
+    return removed
+}
+
+func NewHeap(isBuy bool) *Heap {
+    newHeap := &Heap{
+        PriceHeap: []int64{},
+        TimeQueue: make(map[int64]*OrderList),
+        isBuy: isBuy,
+    }
+    return newHeap
 }
