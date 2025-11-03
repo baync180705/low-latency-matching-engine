@@ -1,10 +1,14 @@
 package algo
 
 import (
+	"errors"
+	"time"
+
 	types "github.com/baync180705/low-latency-matching-engine/types"
+	"github.com/google/uuid"
 )
 
-func MatchingAlgorithm (newOrder *types.Order) {
+func MatchingAlgorithm (newOrder *types.Order) ([]*types.TradeRecord, error) {
 	globalRegistry := GetRegistry()
 	
 	currentOrderBook := globalRegistry.Books[newOrder.Symbol]
@@ -12,13 +16,16 @@ func MatchingAlgorithm (newOrder *types.Order) {
 	currentOrderBook.Mu.Lock()
 	defer currentOrderBook.Mu.Unlock()
 	if !(currentOrderBook.BuyHeap.Len()>0 && currentOrderBook.SellHeap.Len()>0) {
-		return
+		return nil, errors.New("No match found — order added to order book")
 	}
 	buyPrice := currentOrderBook.BuyHeap.PriceHeap[0]
 	sellPrice := currentOrderBook.SellHeap.PriceHeap[0]
 
+	var tradeResponse []*types.TradeRecord 
+
 	if newOrder.Type=="LIMIT" {
-		if buyPrice<sellPrice {return}
+		if buyPrice<sellPrice {return nil, errors.New("No match found — order added to order book")}
+		var totalQtyTrade int64 =0
 
 		for buyPrice>=sellPrice {
 			bestBuyOrder := currentOrderBook.BuyHeap.TimeQueue[buyPrice].Front().Value.(*types.Order)
@@ -28,6 +35,7 @@ func MatchingAlgorithm (newOrder *types.Order) {
 			sellQty := bestSellOrder.Quantity
 
 			qtyTrade := min(buyQty, sellQty)
+			totalQtyTrade += qtyTrade
 
 			bestBuyOrder.Quantity-=qtyTrade
 			bestSellOrder.Quantity-= qtyTrade
@@ -54,12 +62,35 @@ func MatchingAlgorithm (newOrder *types.Order) {
 			}
 
 			if !(currentOrderBook.BuyHeap.Len()>0 && currentOrderBook.SellHeap.Len()>0) {
-				return
+				break
 			}
 
 			buyPrice = currentOrderBook.BuyHeap.PriceHeap[0]
 			sellPrice= currentOrderBook.SellHeap.PriceHeap[0]
 		}
+
+		var userTxnQty int64
+		if newOrder.Quantity > totalQtyTrade {
+			userTxnQty = totalQtyTrade
+		} else {
+			userTxnQty = newOrder.Quantity
+		}
+
+		var restingPrice int64
+		if newOrder.Side == "BUY" {
+			restingPrice = sellPrice
+		} else if newOrder.Side == "SELL" {
+			restingPrice = buyPrice
+		}
+
+		trade := &types.TradeRecord{
+			TradeID:uuid.New().String() ,
+			Price: restingPrice,
+			Quantity: userTxnQty,
+			Timestamp: time.Now().UnixMilli(),
+		}
+
+		tradeResponse = append(tradeResponse, trade)
 	} else if newOrder.Type=="MARKET" {
 		demandedQty := newOrder.Quantity
 		var heap *types.Heap
@@ -72,12 +103,20 @@ func MatchingAlgorithm (newOrder *types.Order) {
 			heap = currentOrderBook.BuyHeap
 		}
 
-		if demandedQty>availableQty {return}
+		if demandedQty>availableQty {
+			delete(currentOrderBook.OrderIDMap, newOrder.ID)
+			return nil, errors.New("Market order could not be filled — insufficient liquidity")
+		}
 
 		temp:= demandedQty
 		for temp>0 && heap.Len() > 0{
 			price := heap.PriceHeap[0]
 			offerOrder := heap.TimeQueue[price].Front().Value.(*types.Order)
+			offerID := offerOrder.ID
+			if _, exists := currentOrderBook.OrderIDMap[offerID]; !exists {
+				heap.Pop()
+				continue
+			}
 			offerQty := offerOrder.Quantity
 			tradeQty := min(offerQty, temp)
 			temp -= tradeQty
@@ -91,7 +130,16 @@ func MatchingAlgorithm (newOrder *types.Order) {
 					heap.Pop()
 				}
 			}
+
+			trade := &types.TradeRecord{
+				TradeID: uuid.New().String() ,
+				Price: price,
+				Quantity: tradeQty,
+				Timestamp: time.Now().UnixMilli(),
+			}
+			tradeResponse = append(tradeResponse, trade)
 		}
 		delete(currentOrderBook.OrderIDMap, newOrder.ID)
 	}
+	return tradeResponse, nil
 }
