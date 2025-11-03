@@ -10,13 +10,22 @@ type Regsitry struct {
 }
 
 type OrderBook struct {
-	BuyPriorityQueue  *Heap
-    SellPriorityQueueSide *Heap 
+	BuyHeap  *Heap
+    SellHeap *Heap 
     OrderIDMap map[string]*Order 
     Mu sync.RWMutex
 }
 
-type Heap struct {
-	PriceHeap *PriceHeap
-	TimeQueue map[int64]*OrderList
+func NewRegistry() *Regsitry {
+    return &Regsitry{
+        Books: make(map[string]*OrderBook), 
+    }
+}
+
+func NewOrderBook(symbol string) *OrderBook {
+    return &OrderBook{
+        BuyHeap: NewHeap(true),
+        SellHeap: NewHeap(false),
+        OrderIDMap: make(map[string]*Order),
+    }
 }

@@ -22,3 +22,9 @@ type TradeRecord struct {
     Quantity  int64  `json:"quantity"`
     Timestamp int64  `json:"timestamp"`
 }
+
+func NewOrderList() *OrderList {
+    return &OrderList{
+        List: list.New(),
+    }
+}
