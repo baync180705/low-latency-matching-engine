@@ -18,6 +18,8 @@ type Order struct {
     Price     int64   `json:"price,omitempty"`
     Quantity  int64   `json:"quantity"`
     Timestamp int64   `json:"timestamp"`
+    IsComplete bool  `json:"isComplete"`
+	IsCancelled bool `json:"isCancelled"`
 }
 
 type OrderList struct {

@@ -37,6 +37,8 @@ func SubmitOrderEntry(order *types.OrderInput) (*types.Order, error) {
         Price:     order.Price,
         Quantity:  order.Quantity,
         Timestamp: time.Now().UnixMilli(),
+		IsComplete: false,
+		IsCancelled: false,
     } //Here I added ID and Timestamp fields so that the newOrder confirms to the Order dataType.
 
 	registry.Mu.Lock()
