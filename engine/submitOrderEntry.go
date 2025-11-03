@@ -8,6 +8,7 @@ import (
 	"github.com/baync180705/low-latency-matching-engine/engine/handlers"
 	types "github.com/baync180705/low-latency-matching-engine/types"
 	"github.com/google/uuid"
+	"github.com/baync180705/low-latency-matching-engine/metrics"
 )
 
 var globalRegistry *types.Regsitry
@@ -25,6 +26,9 @@ func SubmitOrderEntry(order *types.OrderInput) (*types.Order, error) {
 	if err := handlers.ValidateInput(order); err != nil {
 		return nil, err
 	}
+
+	// Record that we received an order
+	metrics.IncOrdersReceived()
 
 	globalRegistry := GetRegistry()
 	registry := globalRegistry

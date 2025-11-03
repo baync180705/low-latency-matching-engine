@@ -5,6 +5,7 @@ import (
 	"errors"
 	"time"
 
+	"github.com/baync180705/low-latency-matching-engine/metrics"
 	types "github.com/baync180705/low-latency-matching-engine/types"
 	"github.com/google/uuid"
 )
@@ -18,9 +19,13 @@ func MatchingAlgorithm(newOrder *types.Order) ([]*types.TradeRecord, error) {
 
 	var tradeResponse []*types.TradeRecord
 
+	// Track unique orders touched during matching (for orders_matched)
+	touched := make(map[string]struct{})
+
 	if newOrder.Type == "LIMIT" {
 		// For LIMIT orders, check if matching is possible
 		if !(currentOrderBook.BuyHeap.Len() > 0 && currentOrderBook.SellHeap.Len() > 0) {
+			metrics.AddTradesExecuted(0)
 			return []*types.TradeRecord{}, nil
 		}
 
@@ -29,6 +34,7 @@ func MatchingAlgorithm(newOrder *types.Order) ([]*types.TradeRecord, error) {
 
 		// No cross - can't match
 		if buyPrice < sellPrice {
+			metrics.AddTradesExecuted(0)
 			return []*types.TradeRecord{}, nil
 		}
 
@@ -113,6 +119,11 @@ func MatchingAlgorithm(newOrder *types.Order) ([]*types.TradeRecord, error) {
 			}
 			tradeResponse = append(tradeResponse, trade)
 
+			// Mark touched orders
+			touched[bestBuyOrder.ID] = struct{}{}
+			touched[bestSellOrder.ID] = struct{}{}
+			touched[newOrder.ID] = struct{}{}
+
 			// Check if we can continue matching
 			if !(currentOrderBook.BuyHeap.Len() > 0 && currentOrderBook.SellHeap.Len() > 0) {
 				break
@@ -141,6 +152,7 @@ func MatchingAlgorithm(newOrder *types.Order) ([]*types.TradeRecord, error) {
 		// Check if opposite side has any liquidity
 		if currHeap == nil || currHeap.Len() == 0 {
 			newOrder.IsCancelled = true
+			metrics.IncOrdersCancelled()
 			return nil, errors.New("No liquidity available")
 		}
 
@@ -149,6 +161,7 @@ func MatchingAlgorithm(newOrder *types.Order) ([]*types.TradeRecord, error) {
 		// Strict mode: reject if insufficient liquidity for full fill
 		if demandedQty > availableQty {
 			newOrder.IsCancelled = true
+			metrics.IncOrdersCancelled()
 			return nil, errors.New("Insufficient liquidity")
 		}
 
@@ -191,6 +204,10 @@ func MatchingAlgorithm(newOrder *types.Order) ([]*types.TradeRecord, error) {
 				Timestamp: time.Now().UnixMilli(),
 			}
 			tradeResponse = append(tradeResponse, trade)
+
+			// Mark touched orders
+			touched[offerOrder.ID] = struct{}{}
+			touched[newOrder.ID] = struct{}{}
 		}
 
 		// Update market order quantity to reflect unfilled portion
@@ -201,6 +218,10 @@ func MatchingAlgorithm(newOrder *types.Order) ([]*types.TradeRecord, error) {
 			newOrder.IsComplete = true
 		}
 	}
+
+	// Update metrics: trades created and unique orders matched
+	metrics.AddTradesExecuted(len(tradeResponse))
+	metrics.AddOrdersMatched(len(touched))
 
 	return tradeResponse, nil
 }

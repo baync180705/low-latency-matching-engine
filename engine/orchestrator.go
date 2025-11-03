@@ -2,11 +2,19 @@ package engine
 
 import (
 	"errors"
+	"time"
 
+	"github.com/baync180705/low-latency-matching-engine/metrics"
 	types "github.com/baync180705/low-latency-matching-engine/types"
 )
 
 func RunPipeline(input *types.OrderInput) (*types.Order, []*types.TradeRecord, error) {
+	start := time.Now()
+	defer func() {
+		durationMs := float64(time.Since(start).Milliseconds())
+		metrics.AddLatency(durationMs)
+	}()
+
 	order, err := SubmitOrderEntry(input)
 	if err != nil {
 		return order, nil, errors.New("Failed to submit your order request")

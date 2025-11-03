@@ -36,6 +36,7 @@ func main () {
 	v1.GET("/orders/:order_id", api.GetOrderStatus)
 
 	e.GET("/health", routes.HealthCheck)
+	e.GET("/metrics", routes.GetMetricsHandler)
 
 
 	e.Logger.Fatal(e.Start(":8080"))
