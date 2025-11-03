@@ -24,15 +24,33 @@ func SubmitOrder(c echo.Context) error {
 		})
 	}
 
+	if len(trades) == 0 {
+		return c.JSON(http.StatusOK, types.OrderResponse{
+			OrderID: order.ID,
+			Status:  "ACCEPTED",
+			Message: "No match found — order added to order book",
+		})
+	}
+
 	var filledQty int64
 	for _, t := range trades {
 		filledQty += t.Quantity
 	}
 	remainingQty := order.Quantity - filledQty
 
-	resp := types.OrderResponse{
-		OrderID: order.ID,
-		Trades:  trades,
+	var resp types.OrderResponse
+
+	if trades[0].Quantity==0 && trades[0].Price==0 {
+		customResp := types.OrderResponse {
+			OrderID: order.ID,
+		}
+		resp = customResp
+	}else {
+		customResp := types.OrderResponse{
+			OrderID: order.ID,
+			Trades:  trades,
+		}
+		resp = customResp
 	}
 
 	switch {
