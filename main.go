@@ -6,7 +6,8 @@ import (
 	"github.com/labstack/echo/v4"
 	echoMiddleware "github.com/labstack/echo/v4/middleware"
 
-	"github.com/baync180705/low-latency-matching-engine/controllers"
+	"github.com/baync180705/low-latency-matching-engine/routes/api"
+	"github.com/baync180705/low-latency-matching-engine/routes"
 )
 
 func main () {
@@ -28,7 +29,14 @@ func main () {
 	})
 
 	v1 := e.Group("/api/v1")
-	v1.POST("/orders", controller.SubmitOrder)
+
+	v1.POST("/orders", api.SubmitOrder)
+	v1.DELETE("/orders/:order_id", api.CancelOrder)
+	v1.GET("/orderbook/:symbol", api.GetOrderBook)
+	v1.GET("/orders/:order_id", api.GetOrderStatus)
+
+	e.GET("/health", routes.HealthCheck)
+
 
 	e.Logger.Fatal(e.Start(":8080"))
 }
