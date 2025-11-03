@@ -25,19 +25,18 @@ func GetOrderStatus(c echo.Context) error {
 			"error": "Order not found",
 		})
 	}
+	filledQty := foundOrder.InitQty - foundOrder.Quantity
 	var status string
 	switch {
 	case foundOrder.IsCancelled:
 		status = "CANCELLED"
 	case foundOrder.IsComplete && foundOrder.Quantity == 0:
 		status = "FILLED"
-	case foundOrder.IsComplete && foundOrder.Quantity > 0:
+	case filledQty > 0 && filledQty<foundOrder.InitQty:
 		status = "PARTIAL_FILL"
 	default:
 		status = "ACCEPTED"
 	}
-
-	filledQty := foundOrder.InitQty - foundOrder.Quantity
 
 	response := types.StatusResponse{
 		OrderID:        foundOrder.ID,
