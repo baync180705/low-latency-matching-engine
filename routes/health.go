@@ -5,13 +5,13 @@ import (
 	"time"
 
 	"github.com/labstack/echo/v4"
-	"github.com/baync180705/low-latency-matching-engine/algo"
+	"github.com/baync180705/low-latency-matching-engine/engine"
 )
 
 var startTime = time.Now()
 
 func HealthCheck(c echo.Context) error {
-	globalRegistry := algo.GetRegistry()
+	globalRegistry := engine.GetRegistry()
 	uptime := int64(time.Since(startTime).Seconds())
 	totalOrders := 0
 	for _, book := range globalRegistry.Books {

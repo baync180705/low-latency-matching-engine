@@ -4,7 +4,7 @@ import (
 	"net/http"
 	"log"
 
-	"github.com/baync180705/low-latency-matching-engine/algo"
+	"github.com/baync180705/low-latency-matching-engine/engine"
 	types "github.com/baync180705/low-latency-matching-engine/types"
 	"github.com/labstack/echo/v4"
 )
@@ -17,7 +17,7 @@ func SubmitOrder(c echo.Context) error {
 		})
 	}
 	
-	order, trades, err := algo.RunPipeline(&input)
+	order, trades, err := engine.RunPipeline(&input)
 	
 	// Handle errors from matching (rejections)
 	if err != nil {

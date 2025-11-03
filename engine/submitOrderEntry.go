@@ -1,11 +1,11 @@
-package algo
+package engine
 
 import (
 	"container/heap"
 	"sync"
 	"time"
 
-	"github.com/baync180705/low-latency-matching-engine/algo/handlers"
+	"github.com/baync180705/low-latency-matching-engine/engine/handlers"
 	types "github.com/baync180705/low-latency-matching-engine/types"
 	"github.com/google/uuid"
 )
@@ -25,10 +25,10 @@ func SubmitOrderEntry(order *types.OrderInput) (*types.Order, error) {
 	if err := handlers.ValidateInput(order); err != nil {
 		return nil, err
 	}
-	
+
 	globalRegistry := GetRegistry()
 	registry := globalRegistry
-	
+
 	newOrder := types.Order{
 		ID:          uuid.New().String(),
 		Symbol:      order.Symbol,
@@ -41,7 +41,7 @@ func SubmitOrderEntry(order *types.OrderInput) (*types.Order, error) {
 		IsCancelled: false,
 		InitQty:     order.Quantity,
 	}
-	
+
 	registry.Mu.Lock()
 	book, exists := registry.Books[newOrder.Symbol]
 	// Check if a field corresponding to the given value exists in the map, if it does not, then initailize all the maps and heaps
@@ -50,13 +50,13 @@ func SubmitOrderEntry(order *types.OrderInput) (*types.Order, error) {
 		registry.Books[newOrder.Symbol] = book
 	}
 	registry.Mu.Unlock()
-	
+
 	book.Mu.Lock()
 	defer book.Mu.Unlock()
-	
+
 	// Always add to OrderIDMap for tracking
 	book.OrderIDMap[newOrder.ID] = &newOrder
-	
+
 	// ONLY add LIMIT orders to the book heaps
 	// Market orders execute immediately or get rejected
 	if newOrder.Type == "LIMIT" {
@@ -84,6 +84,6 @@ func SubmitOrderEntry(order *types.OrderInput) (*types.Order, error) {
 			book.SellHeap.Qty += newOrder.Quantity
 		}
 	}
-	
+
 	return &newOrder, nil
 }

@@ -4,13 +4,13 @@ import (
 	"net/http"
 
 	"github.com/labstack/echo/v4"
-	"github.com/baync180705/low-latency-matching-engine/algo"
+	"github.com/baync180705/low-latency-matching-engine/engine"
 	types "github.com/baync180705/low-latency-matching-engine/types"
 )
 
 func CancelOrder(c echo.Context) error {
 	orderID := c.Param("order_id")
-	registry := algo.GetRegistry()
+	registry := engine.GetRegistry()
 
 	var foundOrder *types.Order
 

@@ -1,9 +1,9 @@
-package algo
+package engine
 
 import (
+	"container/heap"
 	"errors"
 	"time"
-	"container/heap"
 
 	types "github.com/baync180705/low-latency-matching-engine/types"
 	"github.com/google/uuid"
@@ -15,7 +15,7 @@ func MatchingAlgorithm(newOrder *types.Order) ([]*types.TradeRecord, error) {
 
 	currentOrderBook.Mu.Lock()
 	defer currentOrderBook.Mu.Unlock()
-	
+
 	var tradeResponse []*types.TradeRecord
 
 	if newOrder.Type == "LIMIT" {
@@ -23,15 +23,15 @@ func MatchingAlgorithm(newOrder *types.Order) ([]*types.TradeRecord, error) {
 		if !(currentOrderBook.BuyHeap.Len() > 0 && currentOrderBook.SellHeap.Len() > 0) {
 			return []*types.TradeRecord{}, nil
 		}
-		
+
 		buyPrice := currentOrderBook.BuyHeap.PriceHeap[0]
 		sellPrice := currentOrderBook.SellHeap.PriceHeap[0]
-		
+
 		// No cross - can't match
 		if buyPrice < sellPrice {
 			return []*types.TradeRecord{}, nil
 		}
-		
+
 		var totalQtyTrade int64 = 0
 
 		for buyPrice >= sellPrice {
@@ -51,7 +51,7 @@ func MatchingAlgorithm(newOrder *types.Order) ([]*types.TradeRecord, error) {
 				buyPrice = currentOrderBook.BuyHeap.PriceHeap[0]
 				continue
 			}
-			
+
 			// Handle cancelled sell orders
 			if currentOrderBook.OrderIDMap[bestSellOrder.ID].IsCancelled {
 				currentOrderBook.SellHeap.TimeQueue[sellPrice].Remove(currentOrderBook.SellHeap.TimeQueue[sellPrice].Front())
@@ -121,43 +121,43 @@ func MatchingAlgorithm(newOrder *types.Order) ([]*types.TradeRecord, error) {
 			buyPrice = currentOrderBook.BuyHeap.PriceHeap[0]
 			sellPrice = currentOrderBook.SellHeap.PriceHeap[0]
 		}
-		
+
 		// Mark complete if fully filled
 		if totalQtyTrade >= newOrder.Quantity {
 			newOrder.IsComplete = true
 		}
-		
+
 	} else if newOrder.Type == "MARKET" {
 		// Market orders match against the OPPOSITE side
 		demandedQty := newOrder.Quantity
 		var currHeap *types.Heap
-		
+
 		if newOrder.Side == "BUY" {
 			currHeap = currentOrderBook.SellHeap
 		} else if newOrder.Side == "SELL" {
 			currHeap = currentOrderBook.BuyHeap
 		}
-		
+
 		// Check if opposite side has any liquidity
 		if currHeap == nil || currHeap.Len() == 0 {
 			newOrder.IsCancelled = true
 			return nil, errors.New("No liquidity available")
 		}
-		
+
 		availableQty := currHeap.Qty
-		
+
 		// Strict mode: reject if insufficient liquidity for full fill
 		if demandedQty > availableQty {
 			newOrder.IsCancelled = true
 			return nil, errors.New("Insufficient liquidity")
 		}
-		
+
 		temp := demandedQty
 		for temp > 0 && currHeap.Len() > 0 {
 			price := currHeap.PriceHeap[0]
 			offerOrder := currHeap.TimeQueue[price].Front().Value.(*types.Order)
 			offerID := offerOrder.ID
-			
+
 			// Skip cancelled orders
 			if currentOrderBook.OrderIDMap[offerID].IsCancelled {
 				currHeap.TimeQueue[price].Remove(currHeap.TimeQueue[price].Front())
@@ -167,13 +167,13 @@ func MatchingAlgorithm(newOrder *types.Order) ([]*types.TradeRecord, error) {
 				}
 				continue
 			}
-			
+
 			offerQty := offerOrder.Quantity
 			tradeQty := min(offerQty, temp)
 			temp -= tradeQty
 			offerOrder.Quantity -= tradeQty
 			currHeap.Qty -= tradeQty
-			
+
 			// Remove fully filled resting order
 			if offerOrder.Quantity == 0 {
 				offerOrder.IsComplete = true
@@ -192,15 +192,15 @@ func MatchingAlgorithm(newOrder *types.Order) ([]*types.TradeRecord, error) {
 			}
 			tradeResponse = append(tradeResponse, trade)
 		}
-		
+
 		// Update market order quantity to reflect unfilled portion
 		newOrder.Quantity = temp
-		
+
 		// Mark complete if fully filled
 		if temp == 0 {
 			newOrder.IsComplete = true
 		}
 	}
-	
+
 	return tradeResponse, nil
 }

@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/labstack/echo/v4"
-	"github.com/baync180705/low-latency-matching-engine/algo"
+	"github.com/baync180705/low-latency-matching-engine/engine"
 	types "github.com/baync180705/low-latency-matching-engine/types"
 )
 
@@ -20,7 +20,7 @@ func GetOrderBook(c echo.Context) error {
 			depth = d
 		}
 	}
-	registry := algo.GetRegistry()
+	registry := engine.GetRegistry()
 	book, exists := registry.Books[symbol]
 	if !exists {
 		return c.JSON(http.StatusNotFound, map[string]string{
