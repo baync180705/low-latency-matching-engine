@@ -2,6 +2,7 @@ package dataType
 
 type Heap struct {
 	PriceHeap []int64 //Slice of Price
+	Qty int64
 	TimeQueue map[int64]*OrderList
 	isBuy bool
 }
@@ -51,6 +52,7 @@ func (h *Heap) PriceLevelExists(price int64) bool {
 func NewHeap(isBuy bool) *Heap {
     newHeap := &Heap{
         PriceHeap: []int64{},
+		Qty: 0,
         TimeQueue: make(map[int64]*OrderList),
         isBuy: isBuy,
     }
