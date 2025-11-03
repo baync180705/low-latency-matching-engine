@@ -12,10 +12,17 @@ import (
 var globalRegistry *types.Regsitry
 var once sync.Once
 
+func GetRegistry() *types.Regsitry {
+    once.Do(func() {
+        globalRegistry = types.NewRegistry()
+    })
+    return globalRegistry
+} // I could have simply exprted globalRegistry by making it GlobalRegistry, but there could be an edge case when the GlobalRegistry gets used in the other files before being initialzied properly. The GetRegistry function ensures that the registry is always initialized before it gets exported.
 
-func SubmitOrderEntry(order *types.OrderInput) error {
+func SubmitOrderEntry(order *types.OrderInput) (*types.Order, error) {
+	// First step is to validate whether the input matches the correct standards eg: quantity cannot be negative etc.
 	if err := handlers.ValidateInput(order); err !=nil {
-		return err
+		return nil, err
 	}
 
 	once.Do(func() {
@@ -32,11 +39,12 @@ func SubmitOrderEntry(order *types.OrderInput) error {
         Price:     order.Price,
         Quantity:  order.Quantity,
         Timestamp: time.Now().UnixMilli(),
-    }
+    } //Here I added ID and Timestamp fields so that the newOrder confirms to the Order dataType.
 
 	registry.Mu.Lock()
 	book, exists := registry.Books[newOrder.Symbol]
-
+	
+	//Check if a field corresponding to the given value exists in the map, if it does not, then initailize all the maps and heaps. If they are not initialized we cannot perform push, pop or lookup operations since all they will host is a nil value
 	if !exists {
 		book = types.NewOrderBook(newOrder.Symbol)
 		registry.Books[newOrder.Symbol] = book
@@ -45,9 +53,11 @@ func SubmitOrderEntry(order *types.OrderInput) error {
 	registry.Mu.Unlock()
 
 	book.Mu.Lock()
-	defer book.Mu.Unlock() //We will keep modifying the book, hence it will be unlocked at the end of the function
+	defer book.Mu.Unlock() //We will keep modifying the book throughout the function, hence it will be unlocked at the end of the function
 
 	book.OrderIDMap[newOrder.ID] = &newOrder
+
+	//Remaining code populates the fields based on whether the order is from the BUY side or SELL side.
 	if newOrder.Side=="BUY" {
 		if !book.BuyHeap.PriceLevelExists(newOrder.Price) {book.BuyHeap.Push(newOrder.Price)}
 
@@ -70,5 +80,5 @@ func SubmitOrderEntry(order *types.OrderInput) error {
 		book.SellHeap.TimeQueue[newOrder.Price].PushBack(&newOrder)
 	}
 	
-	return nil
+	return &newOrder, nil
 } 
