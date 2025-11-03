@@ -76,5 +76,5 @@ Server runs by default on **http://localhost:8080**
 - Metrics API
 - WebSocket order/trade stream
 - Persistent orderbook using Redis or PostgreSQL
-- Cancel/Amend orders
+- Amend orders
 
