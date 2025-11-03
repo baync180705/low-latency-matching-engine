@@ -5,6 +5,8 @@ import (
 
 	"github.com/labstack/echo/v4"
 	echoMiddleware "github.com/labstack/echo/v4/middleware"
+
+	"github.com/baync180705/low-latency-matching-engine/controllers"
 )
 
 func main () {
@@ -25,5 +27,8 @@ func main () {
 		return ctx.JSON(http.StatusOK, pingRes)
 	})
 
-	e.Logger.Fatal(e.Start("8000"))
+	v1 := e.Group("/api/v1")
+	v1.POST("/orders", controller.SubmitOrder)
+
+	e.Logger.Fatal(e.Start(":8080"))
 }
