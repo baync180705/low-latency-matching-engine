@@ -1,8 +1,9 @@
 package algo
 
 import (
-	"time"
+	"container/heap"
 	"sync"
+	"time"
 
 	"github.com/baync180705/low-latency-matching-engine/algo/handlers"
 	types "github.com/baync180705/low-latency-matching-engine/types"
@@ -60,7 +61,7 @@ func SubmitOrderEntry(order *types.OrderInput) (*types.Order, error) {
 
 	//Remaining code populates the fields based on whether the order is from the BUY side or SELL side.
 	if newOrder.Side=="BUY" {
-		if !book.BuyHeap.PriceLevelExists(newOrder.Price) {book.BuyHeap.Push(newOrder.Price)}
+		if !book.BuyHeap.PriceLevelExists(newOrder.Price) {heap.Push(book.BuyHeap, newOrder.Price)}
 
 		_, listExists := book.BuyHeap.TimeQueue[newOrder.Price]
 		if !listExists {
@@ -71,7 +72,7 @@ func SubmitOrderEntry(order *types.OrderInput) (*types.Order, error) {
 		book.BuyHeap.TimeQueue[newOrder.Price].PushBack(&newOrder)
 		book.BuyHeap.Qty+=newOrder.Quantity
 	} else if newOrder.Side=="SELL" {
-		if !book.SellHeap.PriceLevelExists(newOrder.Price) {book.SellHeap.Push(newOrder.Price)}
+		if !book.SellHeap.PriceLevelExists(newOrder.Price) {heap.Push(book.SellHeap, newOrder.Price)}
 
 		_, listExists := book.SellHeap.TimeQueue[newOrder.Price]
 		if !listExists {

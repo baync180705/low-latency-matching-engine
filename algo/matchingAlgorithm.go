@@ -6,6 +6,7 @@ import (
 
 	types "github.com/baync180705/low-latency-matching-engine/types"
 	"github.com/google/uuid"
+	"container/heap"
 )
 
 func MatchingAlgorithm (newOrder *types.Order) ([]*types.TradeRecord, error) {
@@ -16,7 +17,7 @@ func MatchingAlgorithm (newOrder *types.Order) ([]*types.TradeRecord, error) {
 	currentOrderBook.Mu.Lock()
 	defer currentOrderBook.Mu.Unlock()
 	if !(currentOrderBook.BuyHeap.Len()>0 && currentOrderBook.SellHeap.Len()>0) {
-		return nil, errors.New("No match found — order added to order book")
+		return []*types.TradeRecord{}, nil
 	}
 	buyPrice := currentOrderBook.BuyHeap.PriceHeap[0]
 	sellPrice := currentOrderBook.SellHeap.PriceHeap[0]
@@ -24,7 +25,7 @@ func MatchingAlgorithm (newOrder *types.Order) ([]*types.TradeRecord, error) {
 	var tradeResponse []*types.TradeRecord 
 
 	if newOrder.Type=="LIMIT" {
-		if buyPrice<sellPrice {return nil, errors.New("No match found — order added to order book")}
+		if buyPrice<sellPrice {return []*types.TradeRecord{}, nil}
 		var totalQtyTrade int64 =0
 
 		for buyPrice>=sellPrice {
@@ -35,7 +36,7 @@ func MatchingAlgorithm (newOrder *types.Order) ([]*types.TradeRecord, error) {
 				currentOrderBook.BuyHeap.TimeQueue[buyPrice].Remove(currentOrderBook.BuyHeap.TimeQueue[buyPrice].Front())
 				if currentOrderBook.BuyHeap.TimeQueue[buyPrice].Len() == 0 {
 					delete(currentOrderBook.BuyHeap.TimeQueue, buyPrice)
-					currentOrderBook.BuyHeap.Pop()
+					heap.Pop(currentOrderBook.BuyHeap)
 				}
 				if currentOrderBook.BuyHeap.Len() == 0 {
 					break
@@ -47,7 +48,7 @@ func MatchingAlgorithm (newOrder *types.Order) ([]*types.TradeRecord, error) {
 				currentOrderBook.SellHeap.TimeQueue[sellPrice].Remove(currentOrderBook.SellHeap.TimeQueue[sellPrice].Front())
 				if currentOrderBook.SellHeap.TimeQueue[sellPrice].Len() == 0 {
 					delete(currentOrderBook.SellHeap.TimeQueue, sellPrice)
-					currentOrderBook.SellHeap.Pop()
+					heap.Pop(currentOrderBook.SellHeap)
 				}
 				if currentOrderBook.SellHeap.Len() == 0 {
 					break
@@ -73,7 +74,7 @@ func MatchingAlgorithm (newOrder *types.Order) ([]*types.TradeRecord, error) {
 				currentOrderBook.BuyHeap.TimeQueue[buyPrice].Remove(currentOrderBook.BuyHeap.TimeQueue[buyPrice].Front())
 				if currentOrderBook.BuyHeap.TimeQueue[buyPrice].Len() == 0 {
 					delete(currentOrderBook.BuyHeap.TimeQueue, buyPrice)
-					currentOrderBook.BuyHeap.Pop()
+					heap.Pop(currentOrderBook.BuyHeap)
 				}
 			}
 
@@ -82,7 +83,7 @@ func MatchingAlgorithm (newOrder *types.Order) ([]*types.TradeRecord, error) {
 				currentOrderBook.SellHeap.TimeQueue[sellPrice].Remove(currentOrderBook.SellHeap.TimeQueue[sellPrice].Front())
 				if currentOrderBook.SellHeap.TimeQueue[sellPrice].Len() == 0 {
 					delete(currentOrderBook.SellHeap.TimeQueue, sellPrice)
-					currentOrderBook.SellHeap.Pop()
+					heap.Pop(currentOrderBook.SellHeap)
 				}
 			}
 
@@ -116,14 +117,14 @@ func MatchingAlgorithm (newOrder *types.Order) ([]*types.TradeRecord, error) {
 		}
 	} else if newOrder.Type=="MARKET" {
 		demandedQty := newOrder.Quantity
-		var heap *types.Heap
+		var currHeap *types.Heap
 		var availableQty int64
 		if newOrder.Side=="BUY" {
 			availableQty = currentOrderBook.SellHeap.Qty
-			heap = currentOrderBook.SellHeap
+			currHeap = currentOrderBook.SellHeap
 		} else if newOrder.Side =="SELL" {
 			availableQty = currentOrderBook.BuyHeap.Qty
-			heap = currentOrderBook.BuyHeap
+			currHeap = currentOrderBook.BuyHeap
 		}
 
 		if demandedQty > availableQty {
@@ -132,25 +133,25 @@ func MatchingAlgorithm (newOrder *types.Order) ([]*types.TradeRecord, error) {
 		}
 
 		temp:= demandedQty
-		for temp>0 && heap.Len() > 0{
-			price := heap.PriceHeap[0]
-			offerOrder := heap.TimeQueue[price].Front().Value.(*types.Order)
+		for temp>0 && currHeap.Len() > 0{
+			price := currHeap.PriceHeap[0]
+			offerOrder := currHeap.TimeQueue[price].Front().Value.(*types.Order)
 			offerID := offerOrder.ID
 			if currentOrderBook.OrderIDMap[offerID].IsCancelled {
-				heap.Pop()
+				heap.Pop(currHeap)
 				continue
 			}
 			offerQty := offerOrder.Quantity
 			tradeQty := min(offerQty, temp)
 			temp -= tradeQty
 			offerOrder.Quantity -= tradeQty
-			heap.Qty-= tradeQty
+			currHeap.Qty-= tradeQty
 			if offerOrder.Quantity ==0 {
 				offerOrder.IsComplete = true
-				heap.TimeQueue[price].Remove(heap.TimeQueue[price].Front())
-				if heap.TimeQueue[price].Len() ==0 {
-					delete(heap.TimeQueue, price)
-					heap.Pop()
+				currHeap.TimeQueue[price].Remove(currHeap.TimeQueue[price].Front())
+				if currHeap.TimeQueue[price].Len() ==0 {
+					delete(currHeap.TimeQueue, price)
+					heap.Pop(currHeap)
 				}
 			}
 
