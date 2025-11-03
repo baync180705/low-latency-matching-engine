@@ -25,9 +25,7 @@ func SubmitOrderEntry(order *types.OrderInput) (*types.Order, error) {
 		return nil, err
 	}
 
-	once.Do(func() {
-		globalRegistry = types.NewRegistry()
-	}) // This will get executed only once in the program lifecyle. This is because the globalRegistry has to be initialized the 1st time the program executes.
+	globalRegistry := GetRegistry() // This will get executed only once in the program lifecyle. This is because the globalRegistry has to be initialized the 1st time the program executes.
 
 	registry := globalRegistry //Earlier I tried to create a copy by value, but the globalRegistry struct contains sync.RWMutex field and in go copying any struct which contains RWMutex field is not permitted.
 
@@ -68,7 +66,8 @@ func SubmitOrderEntry(order *types.OrderInput) (*types.Order, error) {
 		}
 
 		book.BuyHeap.TimeQueue[newOrder.Price].PushBack(&newOrder)
-	} else {
+		book.BuyHeap.Qty+=newOrder.Quantity
+	} else if newOrder.Side=="SELL" {
 		if !book.SellHeap.PriceLevelExists(newOrder.Price) {book.SellHeap.Push(newOrder.Price)}
 
 		_, listExists := book.SellHeap.TimeQueue[newOrder.Price]
@@ -78,6 +77,7 @@ func SubmitOrderEntry(order *types.OrderInput) (*types.Order, error) {
 		}
 
 		book.SellHeap.TimeQueue[newOrder.Price].PushBack(&newOrder)
+		book.SellHeap.Qty+=newOrder.Quantity
 	}
 	
 	return &newOrder, nil
