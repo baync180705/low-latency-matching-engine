@@ -19,7 +19,7 @@ Supports basic limit and market order matching with an in-memory order book.
 ## Project Structure
 
 ```
-├── algo
+├── engine
 │   ├── handlers
 │   │   └── validateInput.go
 │   ├── matchingAlgorithm.go
@@ -28,6 +28,9 @@ Supports basic limit and market order matching with an in-memory order book.
 ├── go.mod
 ├── go.sum
 ├── main.go
+├── Matching_Engine_Documentation.md
+├── metrics
+│   └── metrics.go
 ├── README.md
 ├── routes
 │   ├── api
@@ -35,7 +38,8 @@ Supports basic limit and market order matching with an in-memory order book.
 │   │   ├── order_cancel.go
 │   │   ├── order.go
 │   │   └── order_status.go
-│   └── health.go
+│   ├── health.go
+│   └── metrics.go
 └── types
     ├── heap.go
     ├── order.go
