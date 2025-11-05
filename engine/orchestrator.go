@@ -11,8 +11,8 @@ import (
 func RunPipeline(input *types.OrderInput) (*types.Order, []*types.TradeRecord, error) {
 	start := time.Now()
 	defer func() {
-		durationMs := float64(time.Since(start).Milliseconds())
-		metrics.AddLatency(durationMs)
+		durationMs := float64(time.Since(start).Microseconds()) / 1000.0
+    	metrics.AddLatency(durationMs)
 	}()
 
 	order, err := SubmitOrderEntry(input)

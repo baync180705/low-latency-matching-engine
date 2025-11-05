@@ -71,6 +71,36 @@ Server runs by default on **http://localhost:8080**
 
 ---
 
+## Load Testing
+
+Load Testing using wrk is supported
+
+### Test the Server
+
+Make the shell script executable
+```bash
+chmod +x run_bench.sh
+```
+Run the script
+```bash
+./run_bench.sh
+```
+
+## Benchmarks Obtained 
+Below are the benchmark results obtained from one of the test runs:
+
+| Metric                      | Value              |
+|------------------------------|--------------------:|
+| **Orders Received**          | 391,896            |
+| **Orders Matched**           | 503,497            |
+| **Orders Cancelled**         | 74,380             |
+| **Orders In Book**           | 75                 |
+| **Trades Executed**          | 316,321            |
+| **Latency P50 (ms)**         | 0.003              |
+| **Latency P99 (ms)**         | 0.073              |
+| **Latency P99.9 (ms)**       | 0.595315           |
+| **Throughput (orders/sec)**  | 22,870.64          |
+
 
 ## Future Enhancements
 - Metrics API
