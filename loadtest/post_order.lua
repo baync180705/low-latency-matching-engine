@@ -1,4 +1,4 @@
-math.randomseed(os.time())
+math.randomseed(os.time()) -- basically math.random generate the same set of random number when it starts. Hence as per the best practices, I used the current time as a random seed to avoid this. This will basically add more randomness. 
 
 wrk.method = "POST"
 wrk.headers["Content-Type"] = "application/json"
