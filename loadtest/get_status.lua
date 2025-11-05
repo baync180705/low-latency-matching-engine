@@ -1,3 +1,5 @@
+math.randomseed(os.time())
+
 wrk.method = "GET"
 
 request = function()
